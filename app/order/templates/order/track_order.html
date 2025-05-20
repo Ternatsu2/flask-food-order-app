@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+
+{% block app_content %}
+<div class="container mt-5">
+    {# Determine badge color based on status, adding text-dark for secondary backgrounds #}
+    {% set status_class = 'bg-secondary text-dark' %} {# Default with contrast fix #}
+    {% if order.status == 'RECEIVED' %}
+        {% set status_class = 'bg-secondary text-dark' %}
+    {% elif order.status == 'Confirmed' %}
+        {% set status_class = 'bg-primary' %} {# Assuming primary has enough contrast or uses light text by default #}
+    {% elif order.status == 'Preparing' %}
+        {% set status_class = 'bg-warning text-dark' %}
+    {% elif order.status == 'Out for Delivery' %}
+        {% set status_class = 'bg-info text-dark' %}
+    {% elif order.status == 'Delivered' %}
+        {% set status_class = 'bg-success' %}
+    {% elif order.status == 'Cancelled' %}
+        {% set status_class = 'bg-danger' %}
+    {% endif %}
+
+    <h1 class="mb-4">Order #{{ order.id }} - <span id="order_status_display" class="badge {{ status_class }}">{{ order.status }}</span></h1>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="card mb-4">
+        <div class="card-header">
+            Order Summary
+        </div>
+        <div class="card-body">
+            <div class="row mb-2">
+                <div class="col-md-3"><strong>Date Placed:</strong></div>
+                <div class="col-md-9">{{ order.timestamp.strftime('%Y-%m-%d %H:%M:%S') if order.timestamp else 'N/A' }}</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-3"><strong>Total Amount:</strong></div>
+                <div class="col-md-9">${{ "%.2f"|format(order.total_amount) }}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-3"><strong>Payment Status:</strong></div>
+                <div class="col-md-9"><span class="badge bg-{{ 'success' if order.payment_status == 'Paid (Simulated)' else 'warning' }}">{{ order.payment_status }}</span></div>
+            </div>
+
+            <h5 class="mt-4">Items Ordered:</h5>
+            <ul class="list-group">
+                 {% for item in order.items %} {# Use order.items directly #}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        {{ item.menu_item.name }} (x{{ item.quantity }})
+                        <span class="badge bg-secondary rounded-pill">${{ "%.2f"|format(item.price_at_order_time * item.quantity) }}</span>
+                    </li>
+                 {% else %}
+                    <li class="list-group-item">Could not load order items.</li>
+                 {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+     {# Simple status tracker visualization #}
+     <div class="mt-4 mb-5">
+        <h4>Order Progress</h4>
+        <div class="progress" style="height: 25px;">
+            {# Map status to percentage for progress bar #}
+            {# Define the map within the block for clarity #}
+            {% set status_progress = {
+                'RECEIVED': 15, 
+                'Pending': 10, 
+                'Confirmed': 25, 
+                'Preparing': 50, 
+                'Out for Delivery': 75, 
+                'Delivered': 100, 
+                'Cancelled': 100
+            } %}
+            {% set current_progress = status_progress.get(order.status, 10) %} {# Default to a small progress #}
+            
+            {# Determine progress bar color, ensure consistency with badge #}
+            {% set progress_bar_color_class = status_class.replace('badge ', '').replace('text-dark', '') %}
+            {# Handle Cancelled separately for progress bar color #}
+            {% if order.status == 'Cancelled' %}
+                 {% set progress_bar_color_class = 'bg-danger' %}
+            {% endif %}
+
+            {# Determine if progress bar should be animated #}
+            {% set bar_animation_class = 'progress-bar-striped progress-bar-animated' %}
+            {% if order.status in ['Delivered', 'Cancelled'] %}
+                 {% set bar_animation_class = '' %} {# Remove animation for final states #}
+            {% endif %}
+
+            <div id="order_progress_bar" class="progress-bar {{ bar_animation_class }} {{ progress_bar_color_class }}" role="progressbar" style="width: {{ current_progress }}%;" aria-valuenow="{{ current_progress }}" aria-valuemin="0" aria-valuemax="100">
+                <span id="order_status_text">{{ order.status }}</span>
+            </div>
+        </div>
+     </div>
+
+    <a href="{{ url_for('order.order_history') }}" class="btn btn-secondary mt-3">Back to Order History</a>
+</div>
+{% endblock %}
+
+{% block page_scripts %}
+    {# Ensure Socket.IO client library is loaded (e.g., from base.html or here) #}
+    {# <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script> #}
+
+    {# Define global JS variables from Flask context #}
+    <script>
+        // Initialize the config object first
+        window.APP_CONFIG = {};
+        // Assign properties using Jinja
+        window.APP_CONFIG.isAuthenticated = {{ isAuthenticated | tojson }};
+        window.APP_CONFIG.userId = {{ userId | tojson }};
+        window.APP_CONFIG.orderId = {{ order.id | tojson }};
+    </script>
+
+    {# Main page script #}
+    <script>
+        document.addEventListener('DOMContentLoaded', (event) => {
+            // Ensure Socket.IO is loaded
+            if (typeof io === 'undefined') {
+                console.error("Socket.IO library not loaded!");
+                return; // Exit if Socket.IO isn't available
+            }
+
+            // Access global config
+            const isAuthenticated = window.APP_CONFIG.isAuthenticated;
+            const userId = window.APP_CONFIG.userId;
+            const orderId = window.APP_CONFIG.orderId;
+
+            // Check if socket is already defined globally (e.g., from base.html)
+            // Initialize locally if not defined globally
+            let socket;
+            if (typeof window.socket === 'undefined') {
+                 console.log("Socket not defined globally, initializing locally.");
+                 const socketProtocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+                 socket = io(socketProtocol + document.domain + ':' + location.port);
+            } else {
+                 console.log("Using globally defined socket.");
+                 socket = window.socket; // Use the global instance
+            }
+
+
+            const statusDisplay = document.getElementById('order_status_display');
+            const statusBar = document.getElementById('order_progress_bar');
+            const statusText = document.getElementById('order_status_text');
+
+            // Mapping for status -> badge class and progress percentage
+            const statusMap = {
+                'RECEIVED': { badge: 'bg-secondary text-dark', progress: 15 }, // Explicitly added contrast
+                'Pending': { badge: 'bg-secondary text-dark', progress: 10 }, // Added contrast just in case
+                'Confirmed': { badge: 'bg-primary', progress: 25 }, 
+                'Preparing': { badge: 'bg-warning text-dark', progress: 50 },
+                'Out for Delivery': { badge: 'bg-info text-dark', progress: 75 },
+                'Delivered': { badge: 'bg-success', progress: 100 },
+                'Cancelled': { badge: 'bg-danger', progress: 100 }
+            };
+
+            socket.on('connect', () => {
+                console.log('Socket.IO Connected for order tracking', orderId);
+                // Only emit 'join' if the user is authenticated and userId is available
+                if (isAuthenticated && userId) {
+                    socket.emit('join', {'user_id': userId});
+                    console.log('Emitted join event for user', userId);
+                } else {
+                    console.log('User not authenticated or userId missing, not emitting join event.');
+                }
+            });
+
+            socket.on('status_update', (data) => {
+                console.log('Received status update:', data);
+                // Check if the update is for the current order and elements exist
+                if (data.order_id === orderId && statusDisplay && statusBar && statusText) {
+                    console.log(`Updating order ${orderId} status to ${data.status}`);
+                    const newStatus = data.status;
+                    // Default to 'RECEIVED' info if status is unknown, for better fallback
+                    const newStatusInfo = statusMap[newStatus] || statusMap['RECEIVED']; 
+
+                    // Update Badge
+                    statusDisplay.textContent = newStatus;
+                    statusDisplay.className = `badge ${newStatusInfo.badge}`; // Reset classes and apply new one
+
+                    // Update Progress Bar
+                    statusBar.style.width = `${newStatusInfo.progress}%`;
+                    statusBar.setAttribute('aria-valuenow', newStatusInfo.progress);
+                    
+                    // Determine progress bar animation and color classes
+                    let progressBarBaseClass = 'progress-bar'; // Base class
+                    let progressBarAnimationClass = 'progress-bar-striped progress-bar-animated';
+                    let progressBarColorClass = newStatusInfo.badge.replace('badge ', '').replace('text-dark', ''); // Get color from badge
+                    
+                    if (newStatus === 'Cancelled') {
+                         progressBarColorClass = 'bg-danger';
+                         progressBarAnimationClass = ''; // No animation
+                    } else if (newStatus === 'Delivered') {
+                         progressBarAnimationClass = ''; // No animation
+                    }
+                    
+                    statusBar.className = `${progressBarBaseClass} ${progressBarAnimationClass} ${progressBarColorClass}`;
+
+                    // Update Text inside progress bar
+                    statusText.textContent = newStatus;
+
+                } else {
+                    console.log('Status update not for this order or elements not found.');
+                }
+            });
+
+            socket.on('disconnect', () => {
+                console.log('Socket.IO Disconnected');
+                // Optionally inform the user that real-time updates are paused
+            });
+        });
+    </script>
+{% endblock %}

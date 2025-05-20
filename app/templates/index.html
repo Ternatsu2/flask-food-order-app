@@ -1,0 +1,190 @@
+© 2025 TAJ Eats Online{% extends "base.html" %}
+
+{% block styles %}
+{{ super() }}
+<style>
+  /* Styles adapted from homepage.html concept */
+  
+  /* Hero banner */
+  .hero {
+    /* Only use orange background color */
+    background-color: #FF5722; 
+    min-height: 300px;
+    position: relative;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start; /* Align text to the left */
+    padding: 2rem 1.5rem;
+    border-radius: 8px; /* Add some rounding */
+    margin-bottom: 2rem; /* Space below hero */
+  }
+  .hero h1 {
+    font-size: 2.5rem; /* Slightly larger */
+    margin-bottom: 0.5rem;
+    font-weight: bold;
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.5); /* Add text shadow for readability */
+  }
+  .hero p {
+    font-size: 1.1rem; /* Slightly larger */
+    margin-bottom: 1.5rem;
+    max-width: 500px; /* Allow slightly wider text */
+    line-height: 1.5;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5); /* Add text shadow */
+  }
+  .hero .btn-order-now { /* Use a specific class for styling the link as a button */
+    background-color: #fff;
+    color: #FF5722;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 4px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none; /* Remove underline from link */
+    display: inline-block; 
+  }
+  .hero .btn-order-now:hover {
+    opacity: 0.9;
+    background-color: #eee; /* Slight hover effect */
+    color: #FF5722; /* Keep text color on hover */
+    text-decoration: none;
+  }
+
+  /* App Screens Showcase */
+  .app-showcase {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-around;
+    align-items: flex-start; /* Align items top */
+    padding: 2rem 1rem;
+    background-color: #f8f9fa; /* Light background */
+    margin-bottom: 2rem;
+    border-radius: 8px;
+  }
+  .app-showcase .mockup {
+    max-width: 220px; 
+    margin: 1rem;
+    text-align: center;
+  }
+  .app-showcase .mockup img {
+    width: 100%;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    margin-bottom: 0.5rem; 
+  }
+  .mockup p {
+    margin-top: 0.5rem;
+    color: #555;
+    font-weight: 500;
+  }
+
+  /* Categories Section */
+  .categories {
+    padding: 2rem 1rem;
+    background-color: #fff; 
+    margin-bottom: 2rem;
+  }
+  .categories h2 {
+    text-align: center;
+    margin-bottom: 1.5rem;
+    color: #333;
+    font-weight: bold;
+  }
+  .category-grid {
+    display: flex; /* Restore flexbox */
+    flex-wrap: wrap; /* Allow wrapping */
+    justify-content: center; /* Center items horizontally */
+    gap: 1.5rem; /* Restore gap */
+    margin-bottom: 1.5rem; 
+  }
+  .category-card {
+    width: 150px; /* Restore fixed width (adjust as needed) */
+    text-align: center;
+    padding: 1rem; 
+    background-color: #fff;
+    border-radius: 8px;
+    border: 1px solid #eee;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.08); 
+    /* Keep cursor default unless it links somewhere */
+    /* cursor: pointer; */ 
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .category-card:hover {
+    transform: translateY(-5px); 
+    box-shadow: 0 4px 10px rgba(0,0,0,0.12);
+  }
+  .category-card img {
+    width: 120px; /* Ensure size is correct */
+    height: 120px; /* Ensure size is correct */
+    object-fit: cover;
+    margin-bottom: 0.75rem; 
+    border-radius: 50%;
+  }
+  .category-card p {
+    margin: 0.25rem 0;
+    font-weight: 600;
+    color: #333;
+    font-size: 0.95rem;
+  }
+</style>
+{% endblock %}
+
+{% block app_content %}
+  <!-- Hero Banner -->
+  <section class="hero">
+    <h1>Delicious Food Delivered Fast</h1>
+    <p>
+      Order your favorite meals from TAJ Eats Online and get them delivered straight to your doorstep. Quick, easy, and always tasty!
+    </p>
+    {# Ensure this button links to the menu page correctly #}
+    <a href="{{ url_for('order.view_menu') }}" class="btn-order-now">Order Now</a> 
+  </section>
+
+  <!-- App Mockup Showcase Section Removed -->
+
+  <!-- Categories Section -->
+  <section class="categories">
+    <h2>Popular Categories</h2>
+    <div class="category-grid">
+      {# Wrap cards in links pointing to menu anchors #}
+      <a href="{{ url_for('order.view_menu') }}#Pizza" class="category-link">
+          <div class="category-card">
+            <img src="{{ url_for('static', filename='images/pizza.webp') }}" alt="Pizza" />
+            <p>Pizza</p>
+          </div>
+      </a>
+      <a href="{{ url_for('order.view_menu') }}#Pasta" class="category-link">
+          <div class="category-card">
+            <img src="{{ url_for('static', filename='images/pasta.jpeg') }}" alt="Pasta" />
+            <p>Pasta</p>
+          </div>
+      </a>
+       <a href="{{ url_for('order.view_menu') }}#Salad" class="category-link">
+          <div class="category-card">
+            <img src="{{ url_for('static', filename='images/salads.jpeg') }}" alt="Salads" />
+            <p>Salads</p>
+          </div>
+       </a>
+      <a href="{{ url_for('order.view_menu') }}#Appetizer" class="category-link">
+          <div class="category-card">
+            <img src="{{ url_for('static', filename='images/appetizers.jpeg') }}" alt="Appetizers" />
+            <p>Appetizers</p>
+          </div>
+      </a>
+       <a href="{{ url_for('order.view_menu') }}#Dessert" class="category-link">
+          <div class="category-card">
+            <img src="{{ url_for('static', filename='images/desserts.jpeg') }}" alt="Desserts" />
+            <p>Desserts</p>
+          </div>
+       </a>
+      <a href="{{ url_for('order.view_menu') }}#Drink" class="category-link">
+          <div class="category-card">
+            <img src="{{ url_for('static', filename='images/drinks.jpeg') }}" alt="Drinks" />
+            <p>Drinks</p>
+          </div>
+        </a>
+      </div>
+    </div> {# End Row 3 #}
+  </section>
+{% endblock %}

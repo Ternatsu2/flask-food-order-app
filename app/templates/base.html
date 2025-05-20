@@ -1,0 +1,95 @@
+{% extends "bootstrap/base.html" %}
+
+{% block title %}
+    {% if title %}{{ title }} - {% endif %}TAJ Eats Online
+{% endblock %}
+
+{% block navbar %}
+<nav class="navbar navbar-default"> {# Use navbar-default for Bootstrap 3 styling #}
+    <div class="container">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" href="{{ url_for('main.index') }}">TAJ Eats Online</a>
+        </div>
+        <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+            <ul class="nav navbar-nav"> {# Use nav navbar-nav for main links #}
+                <li><a href="{{ url_for('main.index') }}">Home</a></li>
+                <li><a href="{{ url_for('order.view_menu') }}">Menu</a></li>
+                <li><a href="{{ url_for('order.view_cart') }}">Cart</a></li>
+                {% if current_user.is_authenticated %}
+                <li><a href="{{ url_for('order.order_history') }}">My Orders</a></li>
+                {% endif %}
+            </ul>
+            <ul class="nav navbar-nav navbar-right"> {# Use nav navbar-nav navbar-right for right-aligned links #}
+                 {% if current_user.is_authenticated %}
+                    <li class="dropdown">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
+                            Hi, {{ current_user.username }}! <span class="caret"></span>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a href="{{ url_for('auth.logout') }}">Logout</a></li>
+                        </ul>
+                    </li>
+                {% else %}
+                    <li><a href="{{ url_for('auth.login') }}">Login</a></li>
+                    <li><a href="{{ url_for('auth.register') }}">Register</a></li>
+                {% endif %}
+            </ul>
+        </div><!-- /.navbar-collapse -->
+    </div>
+</nav>
+{% endblock %}
+
+{% block content %}
+    <div class="container">
+        {# Flash messages section using Bootstrap alerts #}
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    {# Adjust alert classes for Bootstrap 3 #}
+                    {% set alert_type = category if category in ['success', 'info', 'warning', 'danger'] else 'info' %}
+                    <div class="alert alert-{{ alert_type }} alert-dismissible" role="alert">
+                         <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {# Page specific content #}
+        {% block app_content %}{% endblock %}
+
+        {# Footer #}
+        <footer class="pt-4 my-md-5 pt-md-5 border-top">
+            <div class="row">
+                {# Add text-center to center the content within the column #}
+                <div class="col-12 col-md text-center"> 
+                    <small class="d-block mb-3 text-muted">&copy; 2025 TAJ Eats Online</small>
+                </div>
+            </div>
+        </footer>
+    </div>
+{% endblock %}
+
+{# Add Bootstrap JS bundle at the end for dropdowns, alerts etc. #}
+{% block scripts %}
+    {{ super() }} {# This should load Bootstrap 3 JS via Flask-Bootstrap #}
+    {# Custom page-specific scripts can go below #}
+    {% block page_scripts %}{% endblock %}
+{% endblock %}
+
+
+```
+This new `base.html`:
+*   Extends `bootstrap/base.html` provided by Flask-Bootstrap.
+*   Defines the `title` block.
+*   Overrides the `navbar` block with a standard Bootstrap 5 navbar, including branding, navigation links, and user login/logout/profile dropdown.
+*   Overrides the `content` block, wrapping the page content in a Bootstrap `container` and adding Bootstrap-styled flash messages. It also adds a Bootstrap-styled footer.
+*   Adds Bootstrap 5's JavaScript bundle in the `scripts` block (essential for dropdowns, alerts, etc.).
+*   Renames the main content block to `app_content` to avoid conflicts with Bootstrap's blocks.
+*   Adds an empty `page_scripts` block within `scripts` for page-specific JavaScript.

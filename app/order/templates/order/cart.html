@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block app_content %}
+    <div class="container mt-5">
+        <h1 class="mb-4">Your Shopping Cart</h1>
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% if not cart or cart|length == 0 %}
+            <div class="alert alert-info" role="alert">
+                Your cart is currently empty. <a href="{{ url_for('order.view_menu') }}" class="alert-link">Go back to the menu?</a>
+            </div>
+        {% else %}
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Item</th>
+                        <th class="text-end">Price</th>
+                        <th class="text-center" style="width: 150px;">Quantity</th>
+                        <th class="text-end">Subtotal</th>
+                        <th class="text-center">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item_id, details in cart.items() %}
+                    <tr>
+                        <td>{{ details.name }}</td>
+                        <td class="text-end">${{ "%.2f"|format(details.price) }}</td>
+                        <td class="text-center">
+                            <form action="{{ url_for('order.update_cart', item_id=item_id) }}" method="post" class="d-inline-flex align-items-center">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"> {# Add CSRF token if enabled #}
+                                <input type="number" name="quantity" value="{{ details.quantity }}" min="1" class="form-control form-control-sm" style="width: 70px;">
+                                <button type="submit" class="btn btn-sm btn-outline-secondary ms-2">Update</button>
+                            </form>
+                        </td>
+                        <td class="text-end">${{ "%.2f"|format(details.price * details.quantity) }}</td>
+                        <td class="text-center">
+                            <form action="{{ url_for('order.remove_from_cart', item_id=item_id) }}" method="post" class="d-inline">
+                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"> {# Add CSRF token if enabled #}
+                                <button type="submit" class="btn btn-sm btn-danger">Remove</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr class="table-light">
+                        <td colspan="3" class="text-end"><strong>Total:</strong></td>
+                        <td class="text-end"><strong>${{ "%.2f"|format(total) }}</strong></td>
+                        <td></td> {# Empty cell for alignment #}
+                    </tr>
+                </tfoot>
+            </table>
+
+            <div class="d-flex justify-content-between mt-4">
+                <a href="{{ url_for('order.view_menu') }}" class="btn btn-secondary">Continue Shopping</a>
+                <form action="{{ url_for('order.checkout') }}" method="post" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"> {# Add CSRF token if enabled #}
+                    <button type="submit" class="btn btn-lg btn-success">Proceed to Checkout</button>
+                </form>
+            </div>
+        {% endif %}
+    </div>
+{% endblock %}

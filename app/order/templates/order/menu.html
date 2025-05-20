@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% from "bootstrap/wtf.html" import render_form %}
+
+{% block styles %}
+{{ super() }}
+<style>
+    /* Add some more definition to cards */
+    .card {
+        border: 1px solid #ddd;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        background-color: #fff; /* Ensure card background is white */
+    }
+    .card-header {
+        /* Use the orange from the homepage concept */
+        background-color: #FF5722; 
+        color: white; /* White text for contrast */
+        /* border-bottom: 1px solid #eee; */ /* Not needed with strong background */
+    }
+    .category-image-container {
+        border-bottom: 1px solid #eee; /* Separator line below image */
+        margin-bottom: 10px; /* Space below image container */
+    }
+    .category-image-container img { /* Target the image within the container */
+        border-radius: 8px; /* Adjust value for more/less rounding */
+    }
+    .list-group-item {
+        padding-top: 15px; /* Add more vertical padding */
+        padding-bottom: 15px;
+        border-left: none; /* Remove default borders if desired */
+        border-right: none;
+    }
+    .list-group-item:first-child {
+        border-top-left-radius: 0; /* Adjust radius if needed */
+        border-top-right-radius: 0;
+    }
+     .list-group-item:last-child {
+         border-bottom: none; /* Remove bottom border on last item */
+     }
+     /* Ensure container has some padding */
+     .menu-container {
+         padding: 15px;
+         background-color: #f9f9f9; /* Optional: Light background for the whole menu area */
+         border-radius: 5px;
+     }
+     /* Add margin below columns for consistent row spacing */
+     .menu-container .col-md-6 {
+         margin-bottom: 20px; /* Adjust value as needed */
+     }
+</style>
+{% endblock %}
+
+{% block app_content %}
+    <div class="container mt-5 menu-container"> {# Added menu-container class #}
+        <h1 class="mb-4 text-center">Restaurant Menu</h1>
+        
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="row">
+            {% for category, items in menu_items.items() %}
+                {# Add an id based on the category name for anchor linking #}
+                <div class="col-md-6" id="{{ category }}"> 
+                    <div class="card"> {# Keep card without margin/height #}
+                        <div class="card-header bg-primary text-white">
+                            <h4 class="card-title mb-0">{{ category }}</h4>
+                        </div>
+                        {# Add Centered Category Image Below Header with separator #}
+                        {% if category_images and category in category_images %}
+                            <div class="text-center p-3 category-image-container"> {# Apply styles via class #}
+                                <img src="{{ url_for('static', filename='images/' + category_images[category]) }}" class="img-responsive center-block" alt="{{ category }}" style="max-height: 150px;"> {# Use center-block for Bootstrap 3 #}
+                            </div>
+                        {% endif %}
+                        <ul class="list-group list-group-flush">
+                            {% for item in items %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h5 class="mb-1">{{ item.name }}</h5>
+                                        <small class="text-muted">{{ item.description }}</small>
+                                    </div>
+                                    <div class="d-flex align-items-center"> {# Restored align-items-center #}
+                                        <span class="badge bg-success rounded-pill me-2">${{ "%.2f"|format(item.price) }}</span>
+                                        <form method="POST" action="{{ url_for('order.add_to_cart') }}" class="d-inline ms-2"> {# Restored ms-2 #}
+                                             {{ form.hidden_tag() }} {# Re-add for CSRF token #}
+                                             <input type="hidden" name="item_id" value="{{ item.id }}"> {# Keep manual item_id #}
+                                             {# Keep these manual ones as they aren't part of the form validation currently #}
+                                             <input type="hidden" name="item_name" value="{{ item.name }}">
+                                             <input type="hidden" name="item_price" value="{{ item.price }}">
+                                            <div class="input-group input-group-sm" style="width: 100px;">
+                                                <input type="number" name="quantity" class="form-control" value="1" min="1">
+                                                <button type="submit" class="btn btn-outline-primary">
+                                                    <i class="fas fa-cart-plus"></i> Add
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+                {# Add clearfix after every 2 columns on medium+ screens #}
+                {% if loop.index % 2 == 0 %}
+                    <div class="clearfix visible-md-block visible-lg-block"></div>
+                {% endif %}
+            {% endfor %}
+        </div>
+        
+        <div class="text-center mt-4 mb-5">
+             <a href="{{ url_for('order.view_cart') }}" class="btn btn-lg btn-success">
+                <i class="fas fa-shopping-cart"></i> View Cart
+                {% if 'cart' in session and session['cart'] %}
+                    <span class="badge bg-danger ms-1">{{ session['cart']|length }}</span>
+                {% endif %}
+             </a>
+        </div>
+    </div>
+
+    <!-- Font Awesome for cart icon -->
+    {# Replace kit script and old CSS link with CDN CSS link #}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+{% endblock %}

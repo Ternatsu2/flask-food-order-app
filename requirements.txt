@@ -1,0 +1,17 @@
+Flask
+# Flask-Bootstrap5 # Reverted to Flask-Bootstrap below
+Flask-SQLAlchemy
+Flask-Migrate
+Flask-WTF
+Flask-Login
+Flask-SocketIO
+email-validator # Added for WTForms Email validator
+python-dotenv # Added, required by config.py
+pytest
+pytest-cov
+requests
+# stripe # Removed dependency
+gunicorn
+
+# Add Flask-Bootstrap
+Flask-Bootstrap
